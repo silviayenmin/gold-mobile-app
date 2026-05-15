@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Goldmobileapp",
-    "slug": "Goldmobileapp",
+    "name": "newgoldapp",
+    "slug": "newgoldapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,16 +16,20 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.goldapp.admin",
+      "package": "com.locator.goldapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0F172A"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset"
+    ]
   }
 }

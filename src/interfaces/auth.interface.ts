@@ -1,15 +1,12 @@
 export interface User {
   id: string;
   name: string;
-  email: string;
-  role: "admin" | "superadmin";
-  avatar?: string;
+  phoneNumber: string;
+  isKycVerified: boolean;
+  profileImage?: string;
 }
 
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
+export interface AuthResponse {
+  token: string;
+  user: User;
 }

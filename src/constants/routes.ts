@@ -1,24 +1,27 @@
 export enum ROUTES {
-  AUTH = "Auth",
-  APP = "App",
+  // Auth
+  SPLASH = 'Splash',
+  LOGIN = 'Login',
+  REGISTER = 'Register',
+  OTP_VERIFY = 'OTPVerify',
+
+  // App / Main
+  MAIN_TABS = 'MainTabs',
+  HOME = 'Home',
+  DASHBOARD = 'Dashboard',
   
-  LOGIN = "Login",
-  
-  DASHBOARD = "Dashboard",
-  
-  CUSTOMERS = "Customers",
-  CUSTOMER_LIST = "CustomerList",
-  CUSTOMER_DETAILS = "CustomerDetails",
-  
-  SCHEMES = "Schemes",
-  SCHEME_MANAGEMENT = "SchemeManagement",
-  
-  PAYMENTS = "Payments",
-  PAYMENT_MANAGEMENT = "PaymentManagement",
-  
-  INSTALLMENTS = "Installments",
-  DUE_CUSTOMERS = "DueCustomers",
-  
-  BANNERS = "Banners",
-  BANNER_OFFERS = "BannerOffers",
+  // Schemes
+  SCHEME_LIST = 'SchemeList',
+  SCHEME_DETAILS = 'SchemeDetails',
+  JOIN_SCHEME = 'JoinScheme',
+
+  // Payments
+  PAYMENT = 'Payment',
+  PAYMENT_HISTORY = 'PaymentHistory',
+
+  // Installments
+  INSTALLMENT_TRACKER = 'InstallmentTracker',
+
+  // Profile
+  PROFILE = 'Profile',
 }

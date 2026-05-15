@@ -1,3 +1,4 @@
-export * from "./api";
-export * from "./routes";
-export * from "./app";
+export * from './colors';
+export * from './routes';
+export * from './app';
+export * from './mockData';

@@ -1,11 +1,13 @@
-export const formatCurrency = (amount: number, currency = "INR") => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: currency,
-    minimumFractionDigits: 0,
+import { APP_CONFIG } from '../constants/app';
+
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: APP_CONFIG.currency.code,
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 
-export const formatGram = (weight: number) => {
-  return `${weight.toFixed(3)} g`;
+export const formatWeight = (grams: number): string => {
+  return `${grams.toFixed(3)}g`;
 };

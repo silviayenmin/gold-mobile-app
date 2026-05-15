@@ -1,14 +1,19 @@
-import React from "react";
-import { createStackNavigator } from "@react-navigation/stack";
-import { LoginScreen } from "@/screens/auth/LoginScreen";
-import { ROUTES } from "@/constants/routes";
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ROUTES } from '../constants/routes';
+import { AuthStackParamList } from './types';
+import SplashScreen from '../screens/auth/SplashScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator<AuthStackParamList>();
 
-export const AuthNavigator = () => {
+const AuthNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name={ROUTES.SPLASH} component={SplashScreen} />
       <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
     </Stack.Navigator>
   );
 };
+
+export default AuthNavigator;

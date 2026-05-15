@@ -1,67 +1,77 @@
-import React from "react";
-import { TouchableOpacity, Text, ActivityIndicator, View } from "react-native";
-import { LucideIcon } from "lucide-react-native";
+import React from 'react';
+import { TouchableOpacity, ActivityIndicator, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, GRADIENTS } from '../../constants/colors';
+import { Text } from './Typography';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "outline" | "danger";
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   loading?: boolean;
   disabled?: boolean;
-  icon?: LucideIcon;
+  icon?: React.ReactNode;
   className?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = "primary",
+  variant = 'primary',
   loading = false,
   disabled = false,
-  icon: Icon,
-  className = "",
+  icon,
 }) => {
-  const getVariantClasses = () => {
-    switch (variant) {
-      case "primary":
-        return "bg-primary";
-      case "secondary":
-        return "bg-card";
-      case "outline":
-        return "bg-transparent border border-primary";
-      case "danger":
-        return "bg-danger";
-      default:
-        return "bg-primary";
-    }
-  };
+  const isPrimary = variant === 'primary';
+  const isOutline = variant === 'outline';
+  
+  const content = (
+    <View className="flex-row items-center justify-center py-4 px-6">
+      {loading ? (
+        <ActivityIndicator color={isPrimary ? COLORS.white : COLORS.primary} />
+      ) : (
+        <>
+          {icon && <View className="mr-2">{icon}</View>}
+          <Text
+            weight="bold"
+            color={isOutline ? COLORS.primary : COLORS.white}
+          >
+            {title}
+          </Text>
+        </>
+      )}
+    </View>
+  );
 
-  const getTextClasses = () => {
-    switch (variant) {
-      case "outline":
-        return "text-primary";
-      default:
-        return "text-background font-bold";
-    }
-  };
+  if (isPrimary && !disabled) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+        className="rounded-xl overflow-hidden my-2"
+      >
+        <LinearGradient
+          colors={GRADIENTS.gold as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          {content}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
       onPress={onPress}
       disabled={disabled || loading}
-      className={`h-14 rounded-xl flex-row items-center justify-center px-6 ${getVariantClasses()} ${
-        disabled ? "opacity-50" : ""
-      } ${className}`}
+      activeOpacity={0.8}
+      className={`rounded-xl my-2 border ${
+        isOutline ? 'border-primary' : 'bg-transparent'
+      } ${disabled ? 'opacity-50' : ''}`}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === "outline" ? "#D4AF37" : "#0F172A"} />
-      ) : (
-        <View className="flex-row items-center">
-          {Icon && <Icon size={20} color={variant === "outline" ? "#D4AF37" : "#0F172A"} className="mr-2" />}
-          <Text className={`text-base ${getTextClasses()}`}>{title}</Text>
-        </View>
-      )}
+      {content}
     </TouchableOpacity>
   );
 };
