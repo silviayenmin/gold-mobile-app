@@ -6,6 +6,7 @@ import BottomTabNavigator from './BottomTabNavigator';
 import SchemeDetailsScreen from '../screens/schemes/SchemeDetailsScreen';
 import JoinSchemeScreen from '../screens/schemes/JoinSchemeScreen';
 import PaymentScreen from '../screens/payments/PaymentScreen';
+import PayDueScreen from '../screens/payments/PayDueScreen';
 import PaymentHistoryScreen from '../screens/payments/PaymentHistoryScreen';
 import InstallmentTrackerScreen from '../screens/installments/InstallmentTrackerScreen';
 
@@ -18,6 +19,7 @@ const AppNavigator = () => {
       <Stack.Screen name={ROUTES.SCHEME_DETAILS} component={SchemeDetailsScreen} />
       <Stack.Screen name={ROUTES.JOIN_SCHEME} component={JoinSchemeScreen} />
       <Stack.Screen name={ROUTES.PAYMENT} component={PaymentScreen} />
+      <Stack.Screen name={ROUTES.PAY_DUE} component={PayDueScreen} />
       <Stack.Screen name={ROUTES.PAYMENT_HISTORY} component={PaymentHistoryScreen} />
       <Stack.Screen name={ROUTES.INSTALLMENT_TRACKER} component={InstallmentTrackerScreen} />
     </Stack.Navigator>

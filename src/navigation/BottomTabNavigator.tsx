@@ -4,8 +4,9 @@ import { ROUTES } from '../constants/routes';
 import { BottomTabParamList } from './types';
 import HomeDashboardScreen from '../screens/dashboard/HomeDashboardScreen';
 import SchemeListingScreen from '../screens/schemes/SchemeListingScreen';
+import OffersScreen from '../screens/offers/OffersScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
-import { Home, LayoutGrid, User } from 'lucide-react-native';
+import { Home, LayoutGrid, User, BadgePercent } from 'lucide-react-native';
 import { COLORS } from '../constants/colors';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -40,6 +41,14 @@ const BottomTabNavigator = () => {
         options={{
           tabBarLabel: 'Schemes',
           tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name={ROUTES.OFFERS}
+        component={OffersScreen}
+        options={{
+          tabBarLabel: 'Offers',
+          tabBarIcon: ({ color, size }) => <BadgePercent color={color} size={size} />,
         }}
       />
       <Tab.Screen

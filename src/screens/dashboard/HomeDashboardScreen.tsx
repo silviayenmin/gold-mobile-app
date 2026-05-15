@@ -5,11 +5,14 @@ import { Text } from '../../components/common/Typography';
 import { COLORS, GRADIENTS } from '../../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown, Bell, Wallet, History, BadgePercent, ChevronRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { ROUTES } from '../../constants/routes';
 import { MOCK_GOLD_RATE, MOCK_ACTIVE_SCHEMES } from '../../constants/mockData';
 
 const { width } = Dimensions.get('window');
 
 const HomeDashboardScreen = () => {
+  const navigation = useNavigation<any>();
   const activeScheme = MOCK_ACTIVE_SCHEMES[0];
   
   // Animation values using standard react-native Animated
@@ -71,14 +74,26 @@ const HomeDashboardScreen = () => {
         </Animated.View>
 
         <View className="flex-row justify-between mt-8">
-          <QuickAction icon={<Wallet color={COLORS.primary} />} label="Pay Due" />
-          <QuickAction icon={<History color={COLORS.primary} />} label="History" />
-          <QuickAction icon={<BadgePercent color={COLORS.primary} />} label="Offers" />
+          <QuickAction 
+            icon={<Wallet color={COLORS.primary} />} 
+            label="Pay Due" 
+            onPress={() => navigation.navigate(ROUTES.PAY_DUE)}
+          />
+          <QuickAction 
+            icon={<History color={COLORS.primary} />} 
+            label="History" 
+            onPress={() => navigation.navigate(ROUTES.PAYMENT_HISTORY)}
+          />
+          <QuickAction 
+            icon={<BadgePercent color={COLORS.primary} />} 
+            label="Offers" 
+            onPress={() => navigation.navigate(ROUTES.OFFERS)}
+          />
         </View>
 
         <View className="mt-8 mb-4 flex-row justify-between items-end">
           <Text variant="h3" weight="bold">Active Scheme</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate(ROUTES.SCHEME_LIST)}>
             <Text variant="small" color={COLORS.primary} weight="semibold">View All</Text>
           </TouchableOpacity>
         </View>
@@ -115,29 +130,37 @@ const HomeDashboardScreen = () => {
               <Text variant="small" color={COLORS.textMuted}>Next Due Amount</Text>
               <Text variant="h3" weight="bold">₹{activeScheme.nextDueAmount.toLocaleString()}</Text>
             </View>
-            <TouchableOpacity className="bg-primary px-5 py-2 rounded-xl">
+            <TouchableOpacity 
+              className="bg-primary px-5 py-2 rounded-xl"
+              onPress={() => navigation.navigate(ROUTES.PAY_DUE)}
+            >
               <Text variant="small" weight="bold" color={COLORS.white}>Pay Now</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
 
-        <LinearGradient
-          colors={['#1e293b', '#0f172a']}
-          className="p-6 rounded-2xl border border-border mb-10 flex-row items-center justify-between"
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate(ROUTES.OFFERS)}
         >
-          <View className="flex-1 pr-4">
-            <Text variant="body" weight="bold" color={COLORS.primary}>Akshaya Tritiya Special</Text>
-            <Text variant="small" color={COLORS.textMuted} className="mt-1">Get 0.5% extra gold on new scheme enrollment.</Text>
-          </View>
-          <ChevronRight color={COLORS.primary} size={20} />
-        </LinearGradient>
+          <LinearGradient
+            colors={['#1e293b', '#0f172a']}
+            className="p-6 rounded-2xl border border-border mb-10 flex-row items-center justify-between"
+          >
+            <View className="flex-1 pr-4">
+              <Text variant="body" weight="bold" color={COLORS.primary}>Akshaya Tritiya Special</Text>
+              <Text variant="small" color={COLORS.textMuted} className="mt-1">Get 0.5% extra gold on new scheme enrollment.</Text>
+            </View>
+            <ChevronRight color={COLORS.primary} size={20} />
+          </LinearGradient>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const QuickAction = ({ icon, label }: { icon: React.ReactNode, label: string }) => (
-  <TouchableOpacity className="items-center">
+const QuickAction = ({ icon, label, onPress }: { icon: React.ReactNode, label: string, onPress: () => void }) => (
+  <TouchableOpacity className="items-center" onPress={onPress}>
     <View className="w-16 h-16 bg-dark-card border border-border rounded-2xl justify-center items-center mb-2">
       {icon}
     </View>

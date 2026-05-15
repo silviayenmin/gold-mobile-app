@@ -17,7 +17,11 @@ export enum ROUTES {
 
   // Payments
   PAYMENT = 'Payment',
+  PAY_DUE = 'PayDue',
   PAYMENT_HISTORY = 'PaymentHistory',
+
+  // Offers
+  OFFERS = 'Offers',
 
   // Installments
   INSTALLMENT_TRACKER = 'InstallmentTracker',

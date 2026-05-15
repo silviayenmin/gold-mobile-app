@@ -11,6 +11,7 @@ export type AppStackParamList = {
   [ROUTES.SCHEME_DETAILS]: { schemeId: string };
   [ROUTES.JOIN_SCHEME]: { schemeId: string };
   [ROUTES.PAYMENT]: { installmentId: string; amount: number };
+  [ROUTES.PAY_DUE]: undefined;
   [ROUTES.PAYMENT_HISTORY]: undefined;
   [ROUTES.INSTALLMENT_TRACKER]: { schemeId: string };
 };
@@ -18,6 +19,7 @@ export type AppStackParamList = {
 export type BottomTabParamList = {
   [ROUTES.HOME]: undefined;
   [ROUTES.SCHEME_LIST]: undefined;
+  [ROUTES.OFFERS]: undefined;
   [ROUTES.PROFILE]: undefined;
 };
 
