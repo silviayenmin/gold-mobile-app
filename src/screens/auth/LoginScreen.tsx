@@ -12,7 +12,7 @@ const LoginScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);
-  const [loading, setLoading] = useState(false);
+
   const login = useAuthStore((state) => state.login);
 
   // Standard Animated values
@@ -35,26 +35,21 @@ const LoginScreen = () => {
   }, []);
 
   const handleSendOtp = () => {
-    if (phoneNumber.length < 10) return;
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    if (phoneNumber.length === 10) { 
       setShowOtp(true);
-    }, 1500);
+    }
+    else {
+      setShowOtp(false);
+    }
+   
   };
 
   const handleVerifyOtp = () => {
     if (otp.length < 4) return;
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      login(
-        { id: '1', name: 'John Doe', phoneNumber, isKycVerified: false },
-        'mock-token'
-      );
-    }, 1500);
+    login(
+      { id: '1', name: 'John Doe', phoneNumber, isKycVerified: false },
+      'mock-token'
+    );
   };
 
   return (
@@ -77,40 +72,20 @@ const LoginScreen = () => {
           </Animated.View>
 
           <View className="flex-1">
-            {!showOtp ? (
-              <View key="phone-input">
-                <Input
-                  label="Mobile Number"
-                  placeholder="Enter 10 digit number"
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  icon={<Phone size={20} color={COLORS.primary} />}
-                />
-                <Button
-                  title="Send OTP"
-                  onPress={handleSendOtp}
-                  loading={loading}
-                  disabled={phoneNumber.length < 10}
-                  icon={<ArrowRight size={20} color={COLORS.white} />}
-                />
-              </View>
-            ) : (
-              <View key="otp-input">
+            {showOtp ? (
+               <View key="otp-input">
                 <Input
                   label="Enter OTP"
                   placeholder="4 digit OTP"
                   keyboardType="number-pad"
                   maxLength={4}
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
                 />
                 <Button
                   title="Verify & Login"
                   onPress={handleVerifyOtp}
-                  loading={loading}
-                  disabled={otp.length < 4}
+                  // disabled={otp.length < 4}
                 />
                 <TouchableOpacity 
                   onPress={() => setShowOtp(false)}
@@ -121,6 +96,26 @@ const LoginScreen = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
+            ) : (
+
+              <View key="phone-input">
+                <Input
+                  label="Mobile Number"
+                  placeholder="Enter 10 digit number"
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={phoneNumber}
+                  onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, ''))}
+                  icon={<Phone size={20} color={COLORS.primary} />}
+                />
+                <Button
+                  title="Send OTP"
+                  onPress={handleSendOtp}
+                  // disabled={phoneNumber.length < 10}
+                  icon={<ArrowRight size={20} color={COLORS.white} />}
+                />
+              </View>
+             
             ) }
           </View>
 
