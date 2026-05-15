@@ -1,23 +1,35 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { View, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../../components/common/Typography';
 import { COLORS, GRADIENTS } from '../../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown, Bell, Wallet, History, BadgePercent, ChevronRight } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ROUTES } from '../../constants/routes';
-import { MOCK_GOLD_RATE, MOCK_ACTIVE_SCHEMES } from '../../constants/mockData';
+import { MOCK_GOLD_RATE } from '../../constants/mockData';
+import { schemeService } from '../../services/scheme.service';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const { width } = Dimensions.get('window');
 
 const HomeDashboardScreen = () => {
-  const navigation = useNavigation<any>();
-  const activeScheme = MOCK_ACTIVE_SCHEMES[0];
+  const navigation = useNavigation();
+  const user = useAuthStore(state => state.user);
+  const [activeSchemes, setActiveSchemes] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  
+  const activeScheme = activeSchemes.length > 0 ? activeSchemes[0] : null;
   
   // Animation values using standard react-native Animated
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   useEffect(() => {
     Animated.parallel([
@@ -34,12 +46,26 @@ const HomeDashboardScreen = () => {
     ]).start();
   }, []);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await schemeService.getActiveSchemes();
+      if (response && response.data) {
+        setActiveSchemes(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-dark">
       <View className="px-6 py-4 flex-row justify-between items-center">
         <View>
           <Text variant="caption" color={COLORS.textMuted}>Good Morning,</Text>
-          <Text variant="h2" weight="bold">John Doe</Text>
+          <Text variant="h2" weight="bold">{user?.name || 'User'}</Text>
         </View>
         <TouchableOpacity className="bg-dark-card p-2 rounded-full border border-border">
           <Bell size={24} color={COLORS.primary} />
@@ -92,52 +118,72 @@ const HomeDashboardScreen = () => {
         </View>
 
         <View className="mt-8 mb-4 flex-row justify-between items-end">
-          <Text variant="h3" weight="bold">Active Scheme</Text>
+          <Text variant="h3" weight="bold">Active Schemes</Text>
           <TouchableOpacity onPress={() => navigation.navigate(ROUTES.SCHEME_LIST)}>
             <Text variant="small" color={COLORS.primary} weight="semibold">View All</Text>
           </TouchableOpacity>
         </View>
 
-        <Animated.View
-          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-          className="bg-dark-card border border-border p-5 rounded-2xl mb-6"
-        >
-          <View className="flex-row justify-between items-start">
-            <View>
-              <Text variant="body" weight="bold">{activeScheme.name}</Text>
-              <Text variant="small" color={COLORS.textMuted} className="mt-1">Months: {activeScheme.monthsPaid}/{activeScheme.totalMonths}</Text>
+        {activeScheme ? (
+          <Animated.View
+            style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+            className="bg-dark-card border border-border p-5 rounded-2xl mb-6"
+          >
+            <View className="flex-row justify-between items-start">
+              <View>
+                <Text variant="body" weight="bold">{activeScheme.scheme?.name || activeScheme.name}</Text>
+                <Text variant="small" color={COLORS.textMuted} className="mt-1">
+                  ID: {activeScheme.schemeNumber}
+                </Text>
+              </View>
+              <View className="bg-primary/10 px-3 py-1 rounded-full">
+                <Text variant="small" color={COLORS.primary} weight="bold">{activeScheme.status}</Text>
+              </View>
             </View>
-            <View className="bg-primary/10 px-3 py-1 rounded-full">
-              <Text variant="small" color={COLORS.primary} weight="bold">Active</Text>
-            </View>
-          </View>
 
-          <View className="mt-6">
-            <View className="flex-row justify-between mb-2">
-              <Text variant="small" color={COLORS.textMuted}>Savings Progress</Text>
-              <Text variant="small" weight="bold" color={COLORS.primary}>{(activeScheme.progress * 100).toFixed(1)}%</Text>
+            <View className="mt-6">
+              <View className="flex-row justify-between mb-2">
+                <Text variant="small" color={COLORS.textMuted}>Savings Progress</Text>
+                <Text variant="small" weight="bold" color={COLORS.primary}>
+                  {Number(activeScheme.totalGrams) > 0 
+                    ? Number(activeScheme.totalGrams).toFixed(3) 
+                    : (Number(activeScheme.totalPaidAmount || 0) / MOCK_GOLD_RATE.price).toFixed(3)}g / {(Number(Number(activeScheme.totalPaidAmount || 0) + Number(activeScheme.pendingAmount || 0)) / MOCK_GOLD_RATE.price).toFixed(3)}g
+                </Text>
+              </View>
+              <View className="h-2 bg-dark rounded-full overflow-hidden">
+                <View 
+                  className="h-full bg-primary" 
+                  style={{ 
+                    width: `${Math.min(100, Math.max(0, (Number(activeScheme.totalPaidAmount || 0) / (Number(activeScheme.totalPaidAmount || 0) + Number(activeScheme.pendingAmount || 1))) * 100))}%` 
+                  }} 
+                />
+              </View>
             </View>
-            <View className="h-2 bg-dark rounded-full overflow-hidden">
-              <View 
-                className="h-full bg-primary" 
-                style={{ width: `${activeScheme.progress * 100}%` }} 
-              />
-            </View>
-          </View>
 
-          <View className="mt-6 flex-row justify-between items-center">
-            <View>
-              <Text variant="small" color={COLORS.textMuted}>Next Due Amount</Text>
-              <Text variant="h3" weight="bold">₹{activeScheme.nextDueAmount.toLocaleString()}</Text>
+            <View className="mt-6 flex-row justify-between items-center">
+              <View>
+                <Text variant="small" color={COLORS.textMuted}>Pending Amount</Text>
+                <Text variant="h3" weight="bold">₹{Number(activeScheme.pendingAmount).toLocaleString()}</Text>
+              </View>
+              <TouchableOpacity 
+                className="bg-primary px-5 py-2 rounded-xl"
+                onPress={() => navigation.navigate(ROUTES.PAY_DUE)}
+              >
+                <Text variant="small" weight="bold" color={COLORS.white}>Pay Now</Text>
+              </TouchableOpacity>
             </View>
+          </Animated.View>
+        ) : (
+          <View className="bg-dark-card border border-border border-dashed p-10 rounded-2xl mb-6 items-center">
+            <Text color={COLORS.textMuted} className="text-center">No active schemes found.</Text>
             <TouchableOpacity 
-              className="bg-primary px-5 py-2 rounded-xl"
-              onPress={() => navigation.navigate(ROUTES.PAY_DUE)}
+              className="mt-4"
+              onPress={() => navigation.navigate(ROUTES.SCHEME_LIST)}
             >
-              <Text variant="small" weight="bold" color={COLORS.white}>Pay Now</Text>
+              <Text color={COLORS.primary} weight="bold">Join a Scheme</Text>
             </TouchableOpacity>
           </View>
-        </Animated.View>
+        )}
 
         <TouchableOpacity 
           activeOpacity={0.8}

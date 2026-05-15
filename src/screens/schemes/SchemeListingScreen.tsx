@@ -5,52 +5,88 @@ import { Text } from '../../components/common/Typography';
 import { Input } from '../../components/common/Input';
 import { COLORS, GRADIENTS } from '../../constants/colors';
 import { Search, Filter, Info, ChevronRight } from 'lucide-react-native';
-import { MOCK_AVAILABLE_SCHEMES } from '../../constants/mockData';
 import { useNavigation } from '@react-navigation/native';
 import { ROUTES } from '../../constants/routes';
 import { LinearGradient } from 'expo-linear-gradient';
+import { schemeService } from '../../services/scheme.service';
 
 const SchemeListingScreen = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
+  const [schemes, setSchemes] = React.useState<any[]>([]);
+  const [mySchemes, setMySchemes] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const renderSchemeItem = ({ item }: { item: typeof MOCK_AVAILABLE_SCHEMES[0], index: number }) => (
-    <View className="mb-4">
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate(ROUTES.SCHEME_DETAILS, { schemeId: item.id })}
-        className="bg-dark-card border border-border rounded-2xl overflow-hidden"
-      >
-        <View className="p-5">
-          <View className="flex-row justify-between items-start">
-            <View className="flex-1">
-              <Text variant="h3" weight="bold">{item.title}</Text>
-              <View className="bg-primary/10 self-start px-2 py-1 rounded-md mt-2">
-                <Text variant="small" color={COLORS.primary} weight="bold">{item.bonus}</Text>
+  React.useEffect(() => {
+    fetchSchemes();
+  }, []);
+
+  const fetchSchemes = async () => {
+    try {
+      setLoading(true);
+      const [schemesRes, mySchemesRes] = await Promise.all([
+        schemeService.getSchemes(),
+        schemeService.getActiveSchemes()
+      ]);
+      
+      if (schemesRes && schemesRes.data) {
+        setSchemes(schemesRes.data);
+      }
+      if (mySchemesRes && mySchemesRes.data) {
+        setMySchemes(mySchemesRes.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch schemes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderSchemeItem = ({ item }) => {
+    const isJoined = mySchemes.some(s => s.schemeId === item.id);
+    
+    return (
+      <View className="mb-4">
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate(ROUTES.SCHEME_DETAILS, { schemeId: item.id })}
+          className="bg-dark-card border border-border rounded-2xl overflow-hidden"
+        >
+          <View className="p-5">
+            <View className="flex-row justify-between items-start">
+              <View className="flex-1">
+                <Text variant="h3" weight="bold">{item.name}</Text>
+                <Text variant="small" color={COLORS.textMuted} className="mt-1">{item.description}</Text>
               </View>
+              <Info size={20} color={COLORS.textMuted} />
             </View>
-            <Info size={20} color={COLORS.textMuted} />
-          </View>
 
-          <View className="flex-row mt-6 pt-4 border-t border-border justify-between">
-            <View>
-              <Text variant="small" color={COLORS.textMuted}>Monthly</Text>
-              <Text variant="body" weight="bold">₹{item.monthlyAmount.toLocaleString()}</Text>
+            <View className="flex-row mt-6 pt-4 border-t border-border justify-between items-center">
+              <View className="flex-row space-x-6">
+                <View>
+                  <Text variant="small" color={COLORS.textMuted}>Monthly</Text>
+                  <Text variant="body" weight="bold">₹{Number(item.monthlyAmount).toLocaleString()}</Text>
+                </View>
+                <View>
+                  <Text variant="small" color={COLORS.textMuted}>Duration</Text>
+                  <Text variant="body" weight="bold">{item.durationMonths} Months</Text>
+                </View>
+              </View>
+              
+              <TouchableOpacity 
+                disabled={isJoined}
+                onPress={() => navigation.navigate(ROUTES.JOIN_SCHEME, { schemeId: item.id })}
+                className={`px-4 py-2 rounded-xl justify-center ${isJoined ? 'bg-success/20' : 'bg-primary'}`}
+              >
+                <Text variant="small" weight="bold" color={isJoined ? COLORS.success : COLORS.white}>
+                  {isJoined ? 'Joined' : 'Join'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <View>
-              <Text variant="small" color={COLORS.textMuted}>Duration</Text>
-              <Text variant="body" weight="bold">{item.duration} Months</Text>
-            </View>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate(ROUTES.JOIN_SCHEME, { schemeId: item.id })}
-              className="bg-primary px-4 py-2 rounded-xl justify-center"
-            >
-              <Text variant="small" weight="bold" color={COLORS.white}>Join</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-dark">
@@ -72,11 +108,20 @@ const SchemeListingScreen = () => {
       </View>
 
       <FlatList
-        data={MOCK_AVAILABLE_SCHEMES}
-        keyExtractor={(item) => item.id}
+        data={schemes}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={renderSchemeItem}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={fetchSchemes}
+        ListEmptyComponent={
+          !loading ? (
+            <View className="bg-dark-card p-10 rounded-2xl items-center">
+              <Text color={COLORS.textMuted}>No schemes available at the moment.</Text>
+            </View>
+          ) : null
+        }
       />
     </SafeAreaView>
   );

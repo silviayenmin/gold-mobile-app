@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../../components/common/Typography';
@@ -9,17 +9,23 @@ import { useNavigation } from '@react-navigation/native';
 import OfferCard from '../../components/cards/OfferCard';
 import SectionHeader from '../../components/common/SectionHeader';
 import { LinearGradient } from 'expo-linear-gradient';
+import { promotionService } from '../../services/promotion.service';
 
 const { width } = Dimensions.get('window');
 
 const OffersScreen = () => {
   const navigation = useNavigation();
+  const [offers, setOffers] = useState(MOCK_OFFERS);
+  const [banners, setBanners] = useState(MOCK_OFFERS.filter(o => o.type === 'Featured'));
+  const [loading, setLoading] = useState(false);
+  const [activeBanner, setActiveBanner] = useState(0);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
+    fetchData();
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -34,7 +40,39 @@ const OffersScreen = () => {
     ]).start();
   }, []);
 
-  const featuredOffers = MOCK_OFFERS.filter(o => o.type === 'Featured' || o.type === 'Festival');
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [bannersRes, offersRes] = await Promise.all([
+        promotionService.getBanners(),
+        promotionService.getOffers()
+      ]);
+      
+      if (bannersRes && bannersRes.data) {
+        setBanners(bannersRes.data.map((b: any) => ({
+          ...b,
+          validity: b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : 'Limited Time',
+          bonus: '10%', // Default bonus for banners
+          type: b.type || 'Featured'
+        })));
+      }
+      
+      if (offersRes && offersRes.data) {
+        setOffers(offersRes.data.map((o: any) => ({
+          ...o,
+          validity: o.expiryDate ? new Date(o.expiryDate).toLocaleDateString() : 'Limited Time',
+          bonus: '5%', // Default bonus for offers
+          type: o.type || 'Promo'
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch promotions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const featuredOffers = banners.length > 0 ? banners : offers.filter(o => o.type === 'Featured' || o.type === 'Festival');
 
   return (
     <SafeAreaView className="flex-1 bg-dark">
@@ -61,70 +99,76 @@ const OffersScreen = () => {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const index = Math.round(x / (width - 48));
+              setActiveBanner(index);
+            }}
             renderItem={({ item }) => (
-              <TouchableOpacity activeOpacity={0.9} style={{ width: width - 48, marginHorizontal: 24 }} className="mt-4 mb-8">
-                <LinearGradient
-                  colors={GRADIENTS.gold as any}
-                  className="rounded-3xl overflow-hidden p-6 h-44 flex-row"
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View className="flex-1 justify-center">
-                    <View className="bg-white/20 self-start px-3 py-1 rounded-full mb-2">
-                      <Text variant="caption" weight="bold" color={COLORS.white}>LIMITED TIME</Text>
+              <TouchableOpacity activeOpacity={0.9} style={{ width: width - 48, marginHorizontal: 24 }} className="mt-4 mb-2">
+                <View className="rounded-3xl overflow-hidden h-44 bg-dark-card border border-border">
+                  {item.image ? (
+                    <Image 
+                      source={{ uri: item.image }} 
+                      className="absolute inset-0 w-full h-full" 
+                      resizeMode="cover" 
+                    />
+                  ) : null}
+                  <LinearGradient
+                    colors={item.image ? ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.8)'] : GRADIENTS.gold as any}
+                    className="flex-1 p-6 flex-row"
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View className="flex-1 justify-center">
+                      <View className="bg-white/20 self-start px-3 py-1 rounded-full mb-2">
+                        <Text variant="caption" weight="bold" color={COLORS.white}>LIMITED TIME</Text>
+                      </View>
+                      <Text variant="h2" weight="bold" color={COLORS.white}>{item.title}</Text>
+                      <Text variant="small" color={COLORS.white} className="mt-1 opacity-80" numberOfLines={1}>
+                        {item.description}
+                      </Text>
+                      <TouchableOpacity className="bg-white px-4 py-2 rounded-xl self-start mt-4">
+                        <Text variant="small" weight="bold" color={COLORS.primaryDark}>Claim Offer</Text>
+                      </TouchableOpacity>
                     </View>
-                    <Text variant="h2" weight="bold" color={COLORS.white}>{item.title}</Text>
-                    <Text variant="small" color={COLORS.white} className="mt-1 opacity-80" numberOfLines={1}>
-                      {item.description}
-                    </Text>
-                    <TouchableOpacity className="bg-white px-4 py-2 rounded-xl self-start mt-4">
-                      <Text variant="small" weight="bold" color={COLORS.primaryDark}>Claim Offer</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View className="w-1/3 items-center justify-center">
-                    <Gift size={80} color="white" style={{ opacity: 0.3 }} />
-                  </View>
-                </LinearGradient>
+                    {!item.image && (
+                      <View className="w-1/3 items-center justify-center">
+                        <Gift size={80} color="white" style={{ opacity: 0.3 }} />
+                      </View>
+                    )}
+                  </LinearGradient>
+                </View>
               </TouchableOpacity>
             )}
           />
+          {/* Pagination Dots */}
+          {featuredOffers.length > 1 && (
+            <View className="flex-row justify-center mb-6">
+              {featuredOffers.map((_, index) => (
+                <View 
+                  key={index}
+                  className={`h-1.5 rounded-full mx-1 ${
+                    activeBanner === index ? 'w-6 bg-primary' : 'w-1.5 bg-border'
+                  }`}
+                />
+              ))}
+            </View>
+          )}
         </Animated.View>
 
         <View className="px-6">
-          {/* Quick Stats */}
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} className="flex-row justify-between mb-8">
-            <OfferStat icon={<Zap size={20} color={COLORS.primary} />} label="Instant" />
-            <OfferStat icon={<Award size={20} color={COLORS.primary} />} label="Bonus" />
-            <OfferStat icon={<Star size={20} color={COLORS.primary} />} label="Exclusive" />
-          </Animated.View>
-
-          <SectionHeader title="Featured Offers" showViewAll={false} />
-          {MOCK_OFFERS.map((offer, index) => (
-            <OfferCard key={offer.id} offer={offer} index={index} />
-          ))}
-
-          <SectionHeader title="Recommended for You" showViewAll={false} />
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} className="mb-10">
-            <LinearGradient
-              colors={['#1e293b', '#0f172a']}
-              className="p-6 rounded-3xl border border-border flex-row items-center justify-between"
-            >
-              <View className="flex-1 pr-4">
-                <Text variant="h3" weight="bold" color={COLORS.primary}>Join Gold Plus</Text>
-                <Text variant="body" color={COLORS.textMuted} className="mt-1">
-                  Upgrade to premium membership and get 1% extra gold on every purchase.
-                </Text>
-                <TouchableOpacity className="mt-4 flex-row items-center">
-                  <Text weight="bold" color={COLORS.white}>Learn More</Text>
-                  <ChevronLeft size={16} color={COLORS.white} style={{ transform: [{ rotate: '180deg' }], marginLeft: 4 }} />
-                </TouchableOpacity>
-              </View>
-              <View className="bg-primary/20 p-4 rounded-2xl">
-                <Star size={32} color={COLORS.primary} />
-              </View>
-            </LinearGradient>
-          </Animated.View>
+          <SectionHeader title="Available Offers" showViewAll={false} />
+          {offers.length > 0 ? (
+            offers.map((offer, index) => (
+              <OfferCard key={offer.id} offer={offer} index={index} />
+            ))
+          ) : (
+            <View className="items-center justify-center py-10">
+              <Text color={COLORS.textMuted}>No offers available currently</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

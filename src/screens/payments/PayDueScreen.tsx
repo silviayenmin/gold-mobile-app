@@ -11,10 +11,17 @@ import GradientButton from '../../components/common/GradientButton';
 import PaymentMethodCard from '../../components/cards/PaymentMethodCard';
 import SectionHeader from '../../components/common/SectionHeader';
 import StatusChip from '../../components/common/StatusChip';
+import { paymentService } from '../../services/payment.service';
+import { schemeService } from '../../services/scheme.service';
+import { useRoute } from '@react-navigation/native';
 
 const PayDueScreen = () => {
   const navigation = useNavigation();
-  const activeScheme = MOCK_ACTIVE_SCHEMES[0];
+  const route = useRoute<any>();
+  const { customerSchemeId, isInitial, amount } = route.params || {};
+
+  const [activeScheme, setActiveScheme] = useState<any>(null);
+  const [pendingInstallment, setPendingInstallment] = useState<any>(null);
   const [selectedMethod, setSelectedMethod] = useState('upi');
   const [loading, setLoading] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -25,6 +32,7 @@ const PayDueScreen = () => {
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
+    fetchActiveScheme();
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -39,14 +47,61 @@ const PayDueScreen = () => {
     ]).start();
   }, []);
 
-  const handlePayment = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+  const fetchActiveScheme = async () => {
+    try {
+      let scheme;
+      if (customerSchemeId) {
+        // Fetch specific scheme if ID passed (from Join flow)
+        scheme = await schemeService.getOneActiveScheme(customerSchemeId);
+      } else {
+        // Otherwise fetch first active scheme (standard flow)
+        const response = await schemeService.getActiveSchemes();
+        if (response && response.data && response.data.length > 0) {
+          scheme = response.data[0];
+        }
+      }
+
+      if (scheme) {
+        setActiveScheme(scheme);
+        // Fetch pending installments for this scheme
+        const duesRes = await schemeService.getPendingDues(scheme.id);
+        if (duesRes && duesRes.data && duesRes.data.length > 0) {
+          setPendingInstallment(duesRes.data[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch active scheme or dues:', error);
+    }
+  };
+
+  const handlePayment = async () => {
+    try {
+      if (!activeScheme || !pendingInstallment) {
+        Alert.alert('Error', 'Payment details not ready. Please wait.');
+        return;
+      }
+
+      setLoading(true);
+      
+      const response = await paymentService.createPayment({
+        customerSchemeId: activeScheme.id,
+        installmentId: pendingInstallment.id,
+        amount: parseFloat(pendingInstallment.amount),
+        paymentMethod: selectedMethod.toUpperCase(),
+      });
+
+      if (response) {
+        setPaymentStatus('success');
+      } else {
+        setPaymentStatus('failure');
+      }
+    } catch (error) {
+      console.error('Payment failed:', error);
+      setPaymentStatus('failure');
+    } finally {
       setLoading(false);
-      setPaymentStatus(Math.random() > 0.1 ? 'success' : 'failure');
       setShowStatusModal(true);
-    }, 2000);
+    }
   };
 
   const closeStatusModal = () => {
@@ -65,7 +120,7 @@ const PayDueScreen = () => {
         >
           <ChevronLeft color={COLORS.primary} size={24} />
         </TouchableOpacity>
-        <Text variant="h2" weight="bold">Pay Due</Text>
+        <Text variant="h2" weight="bold">{isInitial ? 'First Installment' : 'Pay Due'}</Text>
       </View>
 
       <ScrollView 
@@ -74,16 +129,18 @@ const PayDueScreen = () => {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           <SummaryCard 
-            title="Pending Amount" 
-            amount={activeScheme.nextDueAmount * activeScheme.pendingInstallments} 
-            subtitle={`Includes ${activeScheme.pendingInstallments} pending installments`}
+            title={isInitial ? "FIRST INSTALLMENT" : "PENDING AMOUNT"} 
+            amount={pendingInstallment ? parseFloat(pendingInstallment.amount) : (amount || activeScheme?.nextDueAmount || 0)} 
+            subtitle={isInitial ? "Secure your scheme with initial payment" : (pendingInstallment ? `Installment #${pendingInstallment.installmentNumber}` : `Includes ${activeScheme?.pendingInstallments || 0} pending installments`)}
           >
             <View className="flex-row justify-between items-center mt-2">
               <View className="bg-white/20 px-3 py-1 rounded-full">
-                <Text variant="caption" weight="bold" color={COLORS.white}>DUE DATE: {activeScheme.nextDueDate}</Text>
+                <Text variant="caption" weight="bold" color={COLORS.white}>
+                  DUE DATE: {pendingInstallment ? new Date(pendingInstallment.dueDate).toLocaleDateString() : (activeScheme?.nextDueDate || 'TBD')}
+                </Text>
               </View>
-              {activeScheme.pendingInstallments > 1 && (
-                <StatusChip status="OVERDUE" variant="outline" />
+              {pendingInstallment && (
+                <StatusChip status="PENDING" variant="outline" />
               )}
             </View>
           </SummaryCard>
@@ -93,17 +150,21 @@ const PayDueScreen = () => {
           <SectionHeader title="Active Scheme" showViewAll={false} />
           <View className="bg-dark-card border border-border p-5 rounded-3xl">
             <View className="flex-row justify-between items-center mb-4">
-              <Text weight="bold" style={{ fontSize: 18 }}>{activeScheme.name}</Text>
-              <StatusChip status="ACTIVE" />
+              <Text weight="bold" style={{ fontSize: 18 }}>{activeScheme?.scheme?.name || activeScheme?.name || 'Joining Scheme...'}</Text>
+              <StatusChip status={activeScheme?.status || 'PENDING'} />
             </View>
             <View className="flex-row justify-between border-t border-border/50 pt-4">
               <View>
                 <Text variant="small" color={COLORS.textMuted}>Installment</Text>
-                <Text weight="bold" className="mt-1">#{activeScheme.monthsPaid + 1}</Text>
+                <Text weight="bold" className="mt-1">
+                  #{pendingInstallment ? pendingInstallment.installmentNumber : (activeScheme?.monthsPaid ? activeScheme.monthsPaid + 1 : 1)}
+                </Text>
               </View>
               <View className="items-end">
-                <Text variant="small" color={COLORS.textMuted}>Total Months</Text>
-                <Text weight="bold" className="mt-1">{activeScheme.totalMonths}</Text>
+                <Text variant="small" color={COLORS.textMuted}>Scheme Duration</Text>
+                <Text weight="bold" className="mt-1">
+                  {activeScheme?.scheme?.durationMonths || activeScheme?.totalMonths || 0} Months
+                </Text>
               </View>
             </View>
           </View>
@@ -144,7 +205,7 @@ const PayDueScreen = () => {
           <View className="bg-dark-card border border-border p-5 rounded-3xl mb-6">
             <View className="flex-row justify-between mb-3">
               <Text color={COLORS.textMuted}>Subtotal</Text>
-              <Text weight="bold">₹{(activeScheme.nextDueAmount * activeScheme.pendingInstallments).toLocaleString()}</Text>
+              <Text weight="bold">₹{pendingInstallment ? parseFloat(pendingInstallment.amount).toLocaleString() : '0'}</Text>
             </View>
             <View className="flex-row justify-between mb-3">
               <Text color={COLORS.textMuted}>Processing Fee</Text>
@@ -153,14 +214,17 @@ const PayDueScreen = () => {
             <View className="h-px bg-border/50 my-2" />
             <View className="flex-row justify-between mt-1">
               <Text variant="body" weight="bold">Total Amount</Text>
-              <Text variant="h3" weight="bold" color={COLORS.primary}>₹{(activeScheme.nextDueAmount * activeScheme.pendingInstallments).toLocaleString()}</Text>
+              <Text variant="h3" weight="bold" color={COLORS.primary}>
+                ₹{pendingInstallment ? parseFloat(pendingInstallment.amount).toLocaleString() : '0'}
+              </Text>
             </View>
           </View>
 
           <GradientButton 
-            title={loading ? "Processing..." : `Pay ₹${(activeScheme.nextDueAmount * activeScheme.pendingInstallments).toLocaleString()}`} 
+            title={loading ? "Processing..." : `Pay ₹${pendingInstallment ? parseFloat(pendingInstallment.amount).toLocaleString() : '0'}`} 
             onPress={handlePayment}
             loading={loading}
+            disabled={!pendingInstallment}
           />
         </Animated.View>
       </ScrollView>
@@ -200,7 +264,7 @@ const PayDueScreen = () => {
               </View>
               <View className="flex-row justify-between">
                 <Text variant="small" color={COLORS.textMuted}>Amount Paid</Text>
-                <Text variant="small" weight="bold">₹{(activeScheme.nextDueAmount * activeScheme.pendingInstallments).toLocaleString()}</Text>
+                <Text variant="small" weight="bold">₹{Number(pendingInstallment?.amount || amount || 0).toLocaleString()}</Text>
               </View>
             </View>
 

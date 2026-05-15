@@ -2,26 +2,25 @@ import axiosInstance from '../utils/axios';
 
 export const authService = {
   sendOtp: async (phoneNumber: string) => {
-    // return axiosInstance.post('/auth/send-otp', { phoneNumber });
-    return { success: true, message: 'OTP sent successfully' };
+    // Ensure +91 prefix for the backend/db matching
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+    const response = await axiosInstance.post('/login', { mobileNumber: formattedPhone });
+    return response.data;
   },
 
   verifyOtp: async (phoneNumber: string, otp: string) => {
-    // return axiosInstance.post('/auth/verify-otp', { phoneNumber, otp });
-    return { 
-      success: true, 
-      token: 'mock-jwt-token',
-      user: {
-        id: '1',
-        name: 'John Doe',
-        phoneNumber,
-        isKycVerified: false
-      }
-    };
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+    const response = await axiosInstance.post('/verify-otp', { mobileNumber: formattedPhone, otpCode: otp });
+    return response.data;
+  },
+
+  signUp: async (data: any) => {
+    const response = await axiosInstance.post('/sign-up', data);
+    return response.data;
   },
 
   getProfile: async () => {
-    // return axiosInstance.get('/auth/profile');
-    return { id: '1', name: 'John Doe', isKycVerified: false };
+    const response = await axiosInstance.get('/users/profile'); // Assuming /users/profile exists based on typical Nest naming
+    return response.data;
   }
 };

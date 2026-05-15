@@ -39,7 +39,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, index })
   }, []);
 
   const getMethodIcon = () => {
-    switch (transaction.method.toLowerCase()) {
+    const method = transaction.method || 'UPI';
+    switch (method.toLowerCase()) {
       case 'upi':
         return <Smartphone size={16} color={COLORS.textMuted} />;
       case 'card':

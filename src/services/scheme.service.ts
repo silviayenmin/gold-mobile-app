@@ -2,18 +2,28 @@ import axiosInstance from '../utils/axios';
 import { MOCK_AVAILABLE_SCHEMES, MOCK_ACTIVE_SCHEMES } from '../constants/mockData';
 
 export const schemeService = {
-  getAvailableSchemes: async () => {
-    // return axiosInstance.get('/schemes/available');
-    return MOCK_AVAILABLE_SCHEMES;
+  getSchemes: async () => {
+    const response = await axiosInstance.get('/schemes?isActive=1');
+    return response.data;
   },
 
   getActiveSchemes: async () => {
-    // return axiosInstance.get('/schemes/active');
-    return MOCK_ACTIVE_SCHEMES;
+    const response = await axiosInstance.get('/my-schemes'); // Matches BE controller
+    return response.data;
+  },
+
+  getOneActiveScheme: async (id: number) => {
+    const response = await axiosInstance.get(`/my-schemes/${id}`);
+    return response.data.data || response.data;
   },
 
   joinScheme: async (schemeId: string, kycData: any) => {
-    // return axiosInstance.post(`/schemes/join/${schemeId}`, kycData);
-    return { success: true, enrollmentId: 'ENR-' + Math.random().toString(36).substr(2, 9) };
+    const response = await axiosInstance.post('/join-scheme', { schemeId, ...kycData });
+    return response.data;
+  },
+
+  getPendingDues: async (customerSchemeId: number) => {
+    const response = await axiosInstance.get(`/pending-dues?customerSchemeId=${customerSchemeId}`);
+    return response.data;
   }
 };

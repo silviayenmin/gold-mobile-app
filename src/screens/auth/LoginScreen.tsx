@@ -7,11 +7,14 @@ import { Button } from '../../components/common/Button';
 import { COLORS } from '../../constants/colors';
 import { Phone, ArrowRight } from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
+import { authService } from '../../services/auth.service';
 
 const LoginScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const login = useAuthStore((state) => state.login);
 
@@ -34,22 +37,54 @@ const LoginScreen = () => {
     ]).start();
   }, []);
 
-  const handleSendOtp = () => {
-    if (phoneNumber.length === 10) { 
-      setShowOtp(true);
+  const handleSendOtp = async () => {
+    if (phoneNumber.length === 10) {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await authService.sendOtp(phoneNumber);
+        if (response) {
+          setShowOtp(true);
+          // For POC: In development, OTP is logged in backend console
+          console.log('OTP response:', response);
+        }
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to send OTP. Is user registered?');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setError('Please enter a valid 10-digit number');
     }
-    else {
-      setShowOtp(false);
-    }
-   
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     if (otp.length < 4) return;
-    login(
-      { id: '1', name: 'John Doe', phoneNumber, isKycVerified: false },
-      'mock-token'
-    );
+    try {
+      setLoading(true);
+      setError('');
+      const response = await authService.verifyOtp(phoneNumber, otp);
+      console.log('Login Response:', response);
+      if (response && response.data) {
+        const token = response.data.accessToken;
+        console.log('Extracted Token:', token ? 'Success' : 'Missing');
+        await login(
+          { 
+            id: response.data.user.id.toString(), 
+            name: response.data.user.fullName || 'User', 
+            phoneNumber: response.data.user.mobileNumber, 
+            isKycVerified: response.data.user.isKycVerified || false 
+          },
+          token
+        );
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid OTP');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,6 +107,12 @@ const LoginScreen = () => {
           </Animated.View>
 
           <View className="flex-1">
+            {error ? (
+              <View className="bg-danger/10 p-3 rounded-xl mb-4 border border-danger/20">
+                <Text variant="small" color={COLORS.danger}>{error}</Text>
+              </View>
+            ) : null}
+
             {showOtp ? (
                <View key="otp-input">
                 <Input
@@ -85,6 +126,7 @@ const LoginScreen = () => {
                 <Button
                   title="Verify & Login"
                   onPress={handleVerifyOtp}
+                  loading={loading}
                   // disabled={otp.length < 4}
                 />
                 <TouchableOpacity 
@@ -111,6 +153,7 @@ const LoginScreen = () => {
                 <Button
                   title="Send OTP"
                   onPress={handleSendOtp}
+                  loading={loading}
                   // disabled={phoneNumber.length < 10}
                   icon={<ArrowRight size={20} color={COLORS.white} />}
                 />

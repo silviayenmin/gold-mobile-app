@@ -9,15 +9,61 @@ import { MOCK_AVAILABLE_SCHEMES } from '../../constants/mockData';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ROUTES } from '../../constants/routes';
+import { schemeService } from '../../services/scheme.service';
 
 const { width } = Dimensions.get('window');
 
 const SchemeDetailsScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { schemeId } = route.params || { schemeId: 's1' };
+  const { schemeId } = route.params || { schemeId: 1 };
   
-  const scheme = MOCK_AVAILABLE_SCHEMES.find(s => s.id === schemeId) || MOCK_AVAILABLE_SCHEMES[0];
+  const [scheme, setScheme] = React.useState<any>(null);
+  const [isJoined, setIsJoined] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    fetchSchemeDetails();
+  }, [schemeId]);
+
+  const fetchSchemeDetails = async () => {
+    try {
+      setLoading(true);
+      const [schemesRes, mySchemesRes] = await Promise.all([
+        schemeService.getSchemes(),
+        schemeService.getActiveSchemes()
+      ]);
+      
+      if (schemesRes && schemesRes.data) {
+        const found = schemesRes.data.find((s: any) => s.id.toString() === schemeId.toString());
+        setScheme(found);
+      }
+      
+      if (mySchemesRes && mySchemesRes.data) {
+        setIsJoined(mySchemesRes.data.some((s: any) => s.schemeId.toString() === schemeId.toString()));
+      }
+    } catch (error) {
+      console.error('Failed to fetch scheme details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-dark items-center justify-center">
+        <Text color={COLORS.primary}>Loading details...</Text>
+      </View>
+    );
+  }
+
+  if (!scheme) {
+    return (
+      <View className="flex-1 bg-dark items-center justify-center">
+        <Text color={COLORS.textMuted}>Scheme not found</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-dark">
@@ -34,9 +80,9 @@ const SchemeDetailsScreen = () => {
             <ChevronLeft color={COLORS.white} size={24} />
           </TouchableOpacity>
           
-          <Text variant="h1" weight="bold" color={COLORS.white}>{scheme.title}</Text>
+          <Text variant="h1" weight="bold" color={COLORS.white}>{scheme.name}</Text>
           <View className="bg-white/30 self-start px-3 py-1 rounded-full mt-2">
-            <Text variant="small" weight="bold" color={COLORS.white}>{scheme.bonus}</Text>
+            <Text variant="small" weight="bold" color={COLORS.white}>Premium Plan</Text>
           </View>
         </LinearGradient>
 
@@ -51,7 +97,7 @@ const SchemeDetailsScreen = () => {
             <DetailItem 
               icon={<Clock size={20} color={COLORS.primary} />} 
               label="Duration" 
-              value={`${scheme.duration} Months`} 
+              value={`${scheme.durationMonths} Months`} 
             />
             <DetailItem 
               icon={<ShieldCheck size={20} color={COLORS.primary} />} 
@@ -60,8 +106,8 @@ const SchemeDetailsScreen = () => {
             />
             <DetailItem 
               icon={<Award size={20} color={COLORS.primary} />} 
-              label="Bonus" 
-              value={scheme.bonus.split(' ')[0]} 
+              label="Benefit" 
+              value="Bonus Gold" 
             />
           </View>
 
@@ -78,15 +124,15 @@ const SchemeDetailsScreen = () => {
             <Text variant="h3" weight="bold">Installment Details</Text>
             <View className="flex-row justify-between mt-4 py-3 border-b border-border">
               <Text color={COLORS.textMuted}>Monthly Amount</Text>
-              <Text weight="bold">₹{scheme.monthlyAmount.toLocaleString()}</Text>
+              <Text weight="bold">₹{Number(scheme.monthlyAmount).toLocaleString()}</Text>
             </View>
             <View className="flex-row justify-between py-3 border-b border-border">
               <Text color={COLORS.textMuted}>Total Installments</Text>
-              <Text weight="bold">{scheme.duration}</Text>
+              <Text weight="bold">{scheme.durationMonths}</Text>
             </View>
             <View className="flex-row justify-between py-3">
               <Text color={COLORS.textMuted}>Total Accumulation</Text>
-              <Text weight="bold" color={COLORS.primary}>₹{(scheme.monthlyAmount * scheme.duration).toLocaleString()}</Text>
+              <Text weight="bold" color={COLORS.primary}>₹{Number(scheme.monthlyAmount * scheme.durationMonths).toLocaleString()}</Text>
             </View>
           </View>
         </View>
@@ -95,8 +141,11 @@ const SchemeDetailsScreen = () => {
       {/* Sticky Bottom Button */}
       <View className="px-6 pb-8 pt-4 bg-dark border-t border-border">
         <Button 
-          title="Join Scheme Now" 
-          onPress={() => navigation.navigate(ROUTES.JOIN_SCHEME, { schemeId: scheme.id })} 
+          title={isJoined ? "Already Enrolled" : "Join Scheme Now"} 
+          onPress={() => isJoined ? navigation.navigate(ROUTES.DASHBOARD) : navigation.navigate(ROUTES.JOIN_SCHEME, { schemeId: scheme.id })}
+          variant={isJoined ? "outline" : "primary"}
+          style={isJoined ? { borderColor: COLORS.success } : {}}
+          textStyle={isJoined ? { color: COLORS.success } : {}}
         />
       </View>
     </View>

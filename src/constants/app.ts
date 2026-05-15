@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
   name: 'Locator',
   version: '1.0.0',
-  apiBaseUrl: 'https://api.goldapp.com/v1', // Placeholder
+  apiBaseUrl: 'http://192.168.0.101:3000', // Points to backend on computer
   supportEmail: 'support@locatorgold.com',
   currency: {
     code: 'INR',
